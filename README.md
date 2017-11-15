@@ -20,6 +20,6 @@ Arduino Code for Custom Lubell Pingers
 * GPS18xLVC - PPS rising edge occurs at the start of the second, and PPS falling edge occurs exactly 100 ms after the start of the second.
   * `pps_chirp` - The delay time should be set to (900000-848)=899152 us.
   * `pps_chirp_select` - The delay time should be set to (900000-885)=899115 us.
-* Adafruit Ultimate GPS v3 (PA6H) - PPS rising edge occurs at the start of the second, and PPS falling edge occurs exactly 100 ms after the start of the second; this PPS pulse has more variability than the GPS18xLVC, but is still good enough.
+* Adafruit Ultimate GPS v3 (PA6H/MTK3339) - PPS rising edge occurs at the start of the second, and PPS falling edge occurs exactly 100 ms after the start of the second; this PPS pulse has more variability than the GPS18xLVC, but is still good enough.
   * `pps_chirp` - The delay time should be set to (900000-848)=899152 us.
   * `pps_chirp_select` - The delay time should be set to (900000-885)=899115 us.
