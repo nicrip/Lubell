@@ -1,6 +1,9 @@
-/* PPSWaveSelect
-* Play a waveform at the start of PPS signal.
-* Note, there are small delays in play command - remember to account for this delay in your receiving code!!!
+/* pps_chirp_select
+* Play a selected waveform at the start of PPS signal.
+* We purposefully delay the play command to account for unique per-file delays in WAV file loading:
+*   - chirp1.wav - chirp5.wav is played at the start of a PPS trigger into pin 7 (selected through analog pins 5-1)
+*   - each waveform is purposefully delayed so that it starts playing after the number of microseconds specified in delay.txt
+*   - changing WAV files changes the amount of time it takes to load each WAV file; we automatically acount for this variability by purposefully delaying the play
 */
 #include <WaveHC.h>
 #include <WaveUtil.h>
@@ -25,13 +28,22 @@ char filename2[20];
 char filename3[20];
 char filename4[20];
 char filename5[20];
+char delayfile[20];
+unsigned long delayTime;
+unsigned long t0,t1,dt,delayDiff;
+double avgLoadTime1 = 0;
+double avgLoadTime2 = 0;
+double avgLoadTime3 = 0;
+double avgLoadTime4 = 0;
+double avgLoadTime5 = 0;
+double avgLoadTime;
 //////////////////////////////////// SETUP
 
 void setup() {
   // set up Serial library at 9600 bps
   Serial.begin(9600);
   
-  PgmPrintln("LFM Player on PPS trigger with selectable wave");
+  PgmPrintln("WAV Player on PPS trigger with selectable wave");
   Serial.print("Free Ram: ");
   Serial.println(freeRam());
   
@@ -48,6 +60,8 @@ void setup() {
   PgmPrintln("Files found:");
   root.ls();
   pinMode(PPSPin, INPUT);
+  strcpy_P(delayfile, PSTR("delay.txt"));
+  setupDelay(delayfile, &delayTime);
   pinMode(A5, INPUT);
   digitalWrite(A5, HIGH);
   pinMode(A4, INPUT);
@@ -65,51 +79,140 @@ void setup() {
   strcpy_P(filename5, PSTR("chirp5.wav"));
 }
 
+void setupDelay(char *delayname, unsigned long *delayval) {
+  char ch;
+  char st[20];
+  int i = 0;
+  
+  if (!file.open(root, delayname)){
+    PgmPrint("Could not open file ");
+    Serial.print(delayname);
+    return;
+  }
+  while (file.read(&ch, 1) == 1) {
+    st[i] = ch;
+    i++;
+  }
+  *delayval = strtoul(st, NULL, 0);
+  Serial.print("Delay value is: ");
+  Serial.print(*delayval);
+  Serial.println("");
+}
+
 /////////////////////////////////// LOOP
 unsigned digit = 0;
 
 void loop() {
-  // get next character from flash memory
-  //char c = pgm_read_byte(&pi[digit++]);
-  
-  //if (c == 0) {
-    //digit = 0;
-    //Serial.println();
-    //return;
-  //}
-  
   int oldPPSState=PPSState;
   PPSState = digitalRead(PPSPin);
   
-  if(PPSState==HIGH & oldPPSState==LOW){
-    speaknum(digit);
-  }
-}
-
-/////////////////////////////////// HELPERS
-void speaknum(unsigned c) {
   int wave1State = digitalRead(A5);
   int wave2State = digitalRead(A4);
   int wave3State = digitalRead(A3);
   int wave4State = digitalRead(A2);
   int wave5State = digitalRead(A1);
-  Serial.print("Triggered!!! Selected state: ");
-  Serial.print(wave1State);
-  Serial.print(wave2State);
-  Serial.print(wave3State);
-  Serial.print(wave4State);
-  Serial.println(wave5State);
-  if(wave1State==LOW){
-    playcomplete(filename1);
-  } else if(wave2State==LOW) {
-    playcomplete(filename2);
-  } else if(wave3State==LOW) {
-    playcomplete(filename3);
-  } else if(wave4State==LOW) {
-    playcomplete(filename4);
-  } else if(wave5State==LOW) {
-    playcomplete(filename5);
+  
+  if(PPSState==HIGH & oldPPSState==LOW){
+    Serial.print("Triggered!!! Selected state: ");
+    Serial.print(wave1State);
+    Serial.print(wave2State);
+    Serial.print(wave3State);
+    Serial.print(wave4State);
+    Serial.println(wave5State);
+    if(wave1State==LOW){
+      playcomplete(filename1, 1);
+    } else if(wave2State==LOW) {
+      playcomplete(filename2, 2);
+    } else if(wave3State==LOW) {
+      playcomplete(filename3, 3);
+    } else if(wave4State==LOW) {
+      playcomplete(filename4, 4);
+    } else if(wave5State==LOW) {
+      playcomplete(filename5, 5);
+    }
   }
+}
+
+/*
+* Play a file and wait for it to complete
+*/
+void playcomplete(char *name, unsigned int select) {
+  playfile(name, select);
+  while (wave.isplaying);
+  // see if an error occurred while playing
+  sdErrorCheck();
+}
+
+/*
+* Open and start playing a WAV file
+*/
+void playfile(char *name, unsigned int select){
+  if (wave.isplaying) wave.stop();  // already playing something, so stop it!
+    
+  t0 = micros();                    // time how long it takes to load the file - start timer
+  if (!file.open(root, name)){
+    PgmPrint("Could not open file ");
+    Serial.print(name);
+    return;
+  }
+  if (!wave.create(file)){
+    PgmPrintln("Not a valid WAV");
+    return;
+  }
+  wave.load();                      // each WAV file takes a unique amount of time to load
+  t1 = micros();                    // time how long it takes to load the file - stop timer
+  dt = t1-t0;
+  getAverageLoadTime(dt, select);
+  delaymicros(static_cast<unsigned long>(delayTime-avgLoadTime));
+  // ok time to play!
+  wave.play();
+}
+
+/*
+* Get moving average of load times
+*/
+void getAverageLoadTime(unsigned long dt, unsigned int select){
+  if (select == 1) {
+    avgLoadTime = avgLoadTime1;
+  } else if (select == 2) {
+    avgLoadTime = avgLoadTime2;
+  } else if (select == 3) {
+    avgLoadTime = avgLoadTime3;
+  } else if (select == 4) {
+    avgLoadTime = avgLoadTime4;
+  } else if (select == 5) {
+    avgLoadTime = avgLoadTime5;
+  }
+  if (avgLoadTime == 0) {
+    avgLoadTime = static_cast<double>(dt);
+  } else {
+    avgLoadTime = 0.9*avgLoadTime + 0.1*static_cast<double>(dt);
+  }
+  Serial.print("Instant/Average load time for selection ");
+  Serial.print(select);
+  Serial.print(" (us): ");
+  Serial.print(dt);
+  Serial.print(" / ");
+  Serial.println(static_cast<unsigned long>(avgLoadTime));
+  if (select == 1) {
+    avgLoadTime1 = avgLoadTime;
+  } else if (select == 2) {
+    avgLoadTime2 = avgLoadTime;
+  } else if (select == 3) {
+    avgLoadTime3 = avgLoadTime;
+  } else if (select == 4) {
+    avgLoadTime4 = avgLoadTime;
+  } else if (select == 5) {
+    avgLoadTime5 = avgLoadTime;
+  }
+}
+
+/*
+* Delay in microseconds by delaying in milliseconds + microseconds remainder
+*/
+void delaymicros(unsigned long d){
+  delay(d/1000);
+  delayMicroseconds(d%1000); 
 }
 
 /*
@@ -132,35 +235,6 @@ void sdErrorCheck(void) {
   PgmPrint(", ");
   Serial.println(card.errorData(), HEX);
   while(1);
-}
-
-/*
-* Play a file and wait for it to complete
-*/
-void playcomplete(char *name) {
-  playfile(name);
-  while (wave.isplaying);
-  // see if an error occurred while playing
-  sdErrorCheck();
-}
-/*
-* Open and start playing a WAV file
-*/
-void playfile(char *name){
-  if (wave.isplaying) {// already playing something, so stop it!
-    wave.stop(); // stop it
-  }
-  if (!file.open(root, name)){
-    PgmPrint("Could not open file ");
-    Serial.print(name);
-    return;
-  }
-  if (!wave.create(file)){
-    PgmPrintln("Not a valid WAV");
-    return;
-  }
-  // ok time to play!
-  wave.play();
 }
 
 int freeRam () {
