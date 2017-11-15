@@ -14,3 +14,4 @@ Arduino Code for Custom Lubell Pingers
 ## Notes
 
 * GPS18xLVC - PPS rising edge occurs at the start of the second, and PPS falling edge occurs exactly 100 ms after the start of the second.
+* `pps_chirp_select` - there is a play delay caused by the loop code; this has been measured to 885 us.
