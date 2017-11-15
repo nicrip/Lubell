@@ -81,8 +81,9 @@ void loop() {
   int oldPPSState=PPSState;
   PPSState = digitalRead(PPSPin);
   
-  if(PPSState==HIGH & oldPPSState==LOW){
-    Serial.println("Triggered!!!");
+  if(PPSState==LOW & oldPPSState==HIGH){
+    //DEBUG PRINT - uncomment for debugging
+    /*Serial.println("Triggered!!!");*/
     playcomplete(filename);
   }
 }
@@ -131,10 +132,11 @@ void getAverageLoadTime(unsigned long dt){
   } else {
     avgLoadTime = 0.9*avgLoadTime + 0.1*static_cast<double>(dt);
   }
-  Serial.print("Instant/Average load time (us): ");
+  //DEBUG PRINT - uncomment for debugging
+  /*Serial.print("Instant/Average load time (us): ");
   Serial.print(dt);
   Serial.print(" / ");
-  Serial.println(static_cast<unsigned long>(avgLoadTime));
+  Serial.println(static_cast<unsigned long>(avgLoadTime));*/
 }
 
 /*

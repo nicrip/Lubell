@@ -37,6 +37,11 @@ double avgLoadTime3 = 0;
 double avgLoadTime4 = 0;
 double avgLoadTime5 = 0;
 double avgLoadTime;
+int wave1State = 0;
+int wave2State;
+int wave3State;
+int wave4State;
+int wave5State;
 //////////////////////////////////// SETUP
 
 void setup() {
@@ -106,19 +111,20 @@ void loop() {
   int oldPPSState=PPSState;
   PPSState = digitalRead(PPSPin);
   
-  int wave1State = digitalRead(A5);
-  int wave2State = digitalRead(A4);
-  int wave3State = digitalRead(A3);
-  int wave4State = digitalRead(A2);
-  int wave5State = digitalRead(A1);
+  wave1State = digitalRead(A5);
+  wave2State = digitalRead(A4);
+  wave3State = digitalRead(A3);
+  wave4State = digitalRead(A2);
+  wave5State = digitalRead(A1);
   
-  if(PPSState==HIGH & oldPPSState==LOW){
-    Serial.print("Triggered!!! Selected state: ");
+  if(PPSState==LOW& oldPPSState==HIGH){
+    //DEBUG PRINT - uncomment for debugging
+    /*Serial.print("Triggered!!! Selected state: ");
     Serial.print(wave1State);
     Serial.print(wave2State);
     Serial.print(wave3State);
     Serial.print(wave4State);
-    Serial.println(wave5State);
+    Serial.println(wave5State);*/
     if(wave1State==LOW){
       playcomplete(filename1, 1);
     } else if(wave2State==LOW) {
@@ -188,12 +194,13 @@ void getAverageLoadTime(unsigned long dt, unsigned int select){
   } else {
     avgLoadTime = 0.9*avgLoadTime + 0.1*static_cast<double>(dt);
   }
-  Serial.print("Instant/Average load time for selection ");
+  //DEBUG PRINT - uncomment for debugging
+  /*Serial.print("Instant/Average load time for selection ");
   Serial.print(select);
   Serial.print(" (us): ");
   Serial.print(dt);
   Serial.print(" / ");
-  Serial.println(static_cast<unsigned long>(avgLoadTime));
+  Serial.println(static_cast<unsigned long>(avgLoadTime));*/
   if (select == 1) {
     avgLoadTime1 = avgLoadTime;
   } else if (select == 2) {
