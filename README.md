@@ -8,4 +8,5 @@ Arduino Code for Custom Lubell Pingers
 
 ## Examples
 
-* `pps_chirp` - plays a hard-coded WAV file a configurable amount of time after a PPS trigger. The code should adjust for the (file-dependent) time required to seek and load the waveform.
+* `pps_chirp` - plays a hard-coded WAV file (chirp1.wav) a configurable amount of time (through delay.txt) after a PPS trigger. The code should adjust for the (file-dependent) time required to seek and load the waveform.
+* `pps_chirp_select` - plays a hard-coded WAV file (chirp1.wav - chirp5.wav), selectable through analog pins 1-5, a configurable amount of time (through delay.txt)  after a PPS trigger. The code should adjust for the (file-dependent) time required to seek and load the waveform.
